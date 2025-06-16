@@ -1,17 +1,13 @@
 package com.example.securityjwt.entity;
 
-import com.example.securityjwt.enums.Role;
+import com.example.securityjwt.enums.ERole;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.userdetails.UserDetails;
 
 import java.time.LocalDateTime;
-import java.util.Collection;
-import java.util.List;
+import java.util.HashSet;
 import java.util.Set;
 
 @Entity
@@ -19,60 +15,50 @@ import java.util.Set;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class User implements UserDetails {
+public class User {
+
     @Id
-    @GeneratedValue
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(unique = true)
+    // Nom d'utilisateur unique pour la connexion
+    @Column(unique = true, nullable = false)
     private String username;
 
-    private String password;
-    @Column(unique = true)
+    // Email unique
+    @Column(unique = true, nullable = false)
     private String email;
-    private String firstName;
-    private String lastName;
-    private boolean enabled = true;
-    @ElementCollection(fetch = FetchType.EAGER)
-    private Set<Role> roles;
 
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
+    // Mot de passe crypté (jamais en clair !)
+    @Column(nullable = false)
+    private String password;
+
+    // Nom complet de l'employé
+    @Column(name = "full_name")
+    private String fullName;
+
+    // Compte actif ou bloqué
+    private boolean enabled = true;
+
+    // Date de création du compte
+    @Column(name = "created_date")
+    private LocalDateTime createdDate;
+
+    // Dernière connexion
+    @Column(name = "last_login")
+    private LocalDateTime lastLogin;
+
+    // Relation Many-to-Many avec les rôles
+    @ManyToMany(fetch = FetchType.EAGER, cascade = CascadeType.ALL)
+    @JoinTable(
+            name = "user_roles",
+            joinColumns = @JoinColumn(name = "user_id"),
+            inverseJoinColumns = @JoinColumn(name = "role_id")
+    )
+    private Set<ERole> roles = new HashSet<>();
 
     @PrePersist
     protected void onCreate() {
-        createdAt = LocalDateTime.now();
-        updatedAt = createdAt;
-    }
-    @PreUpdate
-    protected void onUpdate() {
-        updatedAt = LocalDateTime.now();
-    }
-
-    @Override
-    public Collection<? extends GrantedAuthority> getAuthorities() {
-        return roles.stream()
-                .map(role -> new SimpleGrantedAuthority("ROLE_" + role.name()))
-                .toList();
-    }
-
-    @Override
-    public boolean isAccountNonExpired() {
-        return true;
-    }
-
-    @Override
-    public boolean isAccountNonLocked() {
-        return true;
-    }
-
-    @Override
-    public boolean isCredentialsNonExpired() {
-        return true;
-    }
-
-    @Override
-    public boolean isEnabled() {
-        return enabled;
+        createdDate = LocalDateTime.now();
     }
 }
